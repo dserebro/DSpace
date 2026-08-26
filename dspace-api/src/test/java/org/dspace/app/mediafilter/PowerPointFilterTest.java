@@ -7,6 +7,7 @@
  */
 package org.dspace.app.mediafilter;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -145,6 +146,54 @@ public class PowerPointFilterTest extends AbstractUnitTest {
             }
         }
         return false;
+    }
+
+    /**
+     * Character-for-character behavioral parity test for .ppt extraction.
+     *
+     * <p>Compares the filter output against the committed expected-output fixture
+     * {@code test.ppt.txt}, which was produced by running the DSpace 11 PowerPointFilter
+     * against the same binary PPT file. Any deviation in slide-text ordering, whitespace,
+     * or content signals a regression in behavioral parity.
+     */
+    @Test
+    public void testParityWithExpectedOutputPPT() throws Exception {
+        InputStream source = getClass().getResourceAsStream("test.ppt");
+        assertNotNull("test.ppt fixture must exist", source);
+        InputStream result = filter.getDestinationStream(null, source, false);
+        assertNotNull("PPT extraction must return a non-null stream", result);
+        String actual = readAll(result);
+
+        InputStream expected = getClass().getResourceAsStream("test.ppt.txt");
+        assertNotNull("test.ppt.txt expected-output fixture must exist", expected);
+        String expectedText = readAll(expected);
+
+        assertEquals("PPT extraction output must match expected fixture character-for-character",
+                expectedText, actual);
+    }
+
+    /**
+     * Character-for-character behavioral parity test for .pptx extraction.
+     *
+     * <p>Compares the filter output against the committed expected-output fixture
+     * {@code test.pptx.txt}, which was produced by running the DSpace 11 PowerPointFilter
+     * against the same OOXML PPTX file. Any deviation in slide-text ordering, whitespace,
+     * or content signals a regression in behavioral parity.
+     */
+    @Test
+    public void testParityWithExpectedOutputPPTX() throws Exception {
+        InputStream source = getClass().getResourceAsStream("test.pptx");
+        assertNotNull("test.pptx fixture must exist", source);
+        InputStream result = filter.getDestinationStream(null, source, false);
+        assertNotNull("PPTX extraction must return a non-null stream", result);
+        String actual = readAll(result);
+
+        InputStream expected = getClass().getResourceAsStream("test.pptx.txt");
+        assertNotNull("test.pptx.txt expected-output fixture must exist", expected);
+        String expectedText = readAll(expected);
+
+        assertEquals("PPTX extraction output must match expected fixture character-for-character",
+                expectedText, actual);
     }
 
     private static String readAll(InputStream stream) throws IOException {
