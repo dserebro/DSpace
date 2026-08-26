@@ -11,7 +11,7 @@ These tests verify:
 import subprocess
 import os
 import pytest
-import xml.etree.ElementTree as ET
+import re
 import time
 
 WORKSPACE_DIR = os.environ.get("WORKSPACE_DIR", "/l2l/workspace")
@@ -28,6 +28,10 @@ DSPACE_CFG = os.path.join(DSPACE_DIR, "dspace/config/dspace.cfg")
 JAVA_HOME = os.environ.get("JAVA_HOME", "/usr/lib/jvm/temurin-21-jdk-amd64")
 MAVEN_HOME = os.environ.get("MAVEN_HOME", "/opt/maven")
 MVN = os.path.join(MAVEN_HOME, "bin", "mvn")
+SUREFIRE_REPORT = os.path.join(
+    DSPACE_DIR,
+    "dspace-api/target/surefire-reports/org.dspace.app.mediafilter.PowerPointFilterTest.txt"
+)
 
 
 def run_maven(*args, timeout=600):
@@ -73,40 +77,25 @@ class TestFixtureFiles:
         path = os.path.join(MEDIAFILTER_RESOURCES, "test.pptx.txt")
         assert os.path.isfile(path), f"test.pptx.txt not found at {path}"
 
-    def test_ppt_expected_output_contains_quick_brown_fox(self):
-        """test.ppt.txt must contain 'quick brown fox' (DSpace 6 parity phrase)."""
-        path = os.path.join(MEDIAFILTER_RESOURCES, "test.ppt.txt")
+    def _read_fixture(self, ext):
+        path = os.path.join(MEDIAFILTER_RESOURCES, f"test.{ext}.txt")
         with open(path, "r", encoding="utf-8") as f:
-            content = f.read()
+            return f.read()
+
+    @pytest.mark.parametrize("ext", ["ppt", "pptx"])
+    def test_expected_output_contains_quick_brown_fox(self, ext):
+        """test.<ext>.txt must contain 'quick brown fox' (DSpace 6 parity phrase)."""
+        content = self._read_fixture(ext)
         assert "quick brown fox" in content.lower(), (
-            f"test.ppt.txt does not contain 'quick brown fox'. Content: {content!r}"
+            f"test.{ext}.txt does not contain 'quick brown fox'. Content: {content!r}"
         )
 
-    def test_pptx_expected_output_contains_quick_brown_fox(self):
-        """test.pptx.txt must contain 'quick brown fox' (DSpace 6 parity phrase)."""
-        path = os.path.join(MEDIAFILTER_RESOURCES, "test.pptx.txt")
-        with open(path, "r", encoding="utf-8") as f:
-            content = f.read()
-        assert "quick brown fox" in content.lower(), (
-            f"test.pptx.txt does not contain 'quick brown fox'. Content: {content!r}"
-        )
-
-    def test_ppt_expected_output_contains_dspace_presentation_phrase(self):
-        """test.ppt.txt must contain DSpace presentation phrase."""
-        path = os.path.join(MEDIAFILTER_RESOURCES, "test.ppt.txt")
-        with open(path, "r", encoding="utf-8") as f:
-            content = f.read()
+    @pytest.mark.parametrize("ext", ["ppt", "pptx"])
+    def test_expected_output_contains_dspace_presentation_phrase(self, ext):
+        """test.<ext>.txt must contain DSpace presentation phrase."""
+        content = self._read_fixture(ext)
         assert "DSpace can extract the text from your presentations!" in content, (
-            f"test.ppt.txt missing expected DSpace phrase. Content: {content!r}"
-        )
-
-    def test_pptx_expected_output_contains_dspace_presentation_phrase(self):
-        """test.pptx.txt must contain DSpace presentation phrase."""
-        path = os.path.join(MEDIAFILTER_RESOURCES, "test.pptx.txt")
-        with open(path, "r", encoding="utf-8") as f:
-            content = f.read()
-        assert "DSpace can extract the text from your presentations!" in content, (
-            f"test.pptx.txt missing expected DSpace phrase. Content: {content!r}"
+            f"test.{ext}.txt missing expected DSpace phrase. Content: {content!r}"
         )
 
 
@@ -208,11 +197,11 @@ class TestPowerPointFilterClass:
             "PowerPointFilter.getBundleName() must return 'TEXT'"
         )
 
-    def test_uses_poi_extractor_factory(self):
-        """PowerPointFilter must use Apache POI ExtractorFactory for direct extraction."""
+    def test_uses_direct_poi_apis(self):
+        """PowerPointFilter must use Apache POI HSLFSlideShow/XMLSlideShow directly (not ExtractorFactory)."""
         content = self._read_source()
-        assert "ExtractorFactory" in content, (
-            "PowerPointFilter must use Apache POI ExtractorFactory for direct extraction"
+        assert "HSLFSlideShow" in content or "XMLSlideShow" in content, (
+            "PowerPointFilter must use HSLFSlideShow or XMLSlideShow directly per milestone spec"
         )
 
     def test_handles_null_source(self):
@@ -222,18 +211,18 @@ class TestPowerPointFilterClass:
             "PowerPointFilter must explicitly handle null source and return null"
         )
 
-    def test_sets_slides_by_default(self):
-        """PowerPointFilter must call setSlidesByDefault(true) for behavioral parity."""
+    def test_iterates_slides(self):
+        """PowerPointFilter must iterate over slides directly (getSlides)."""
         content = self._read_source()
-        assert "setSlidesByDefault(true)" in content, (
-            "PowerPointFilter must call setSlidesByDefault(true)"
+        assert "getSlides()" in content, (
+            "PowerPointFilter must iterate over slides via getSlides()"
         )
 
-    def test_sets_notes_by_default(self):
-        """PowerPointFilter must call setNotesByDefault(true) for behavioral parity."""
+    def test_iterates_text_runs(self):
+        """PowerPointFilter must extract text runs per paragraph."""
         content = self._read_source()
-        assert "setNotesByDefault(true)" in content, (
-            "PowerPointFilter must call setNotesByDefault(true)"
+        assert "getTextRuns()" in content, (
+            "PowerPointFilter must iterate over text runs via getTextRuns()"
         )
 
     def test_mime_types_include_ppt(self):
@@ -301,29 +290,20 @@ class TestMavenUnitTests:
 
     def test_surefire_report_exists(self, maven_test_result):
         """Surefire report must exist after test run."""
-        report_path = os.path.join(
-            DSPACE_DIR,
-            "dspace-api/target/surefire-reports/org.dspace.app.mediafilter.PowerPointFilterTest.txt"
-        )
-        assert os.path.isfile(report_path), (
-            f"Surefire report not found at {report_path}. "
+        assert os.path.isfile(SUREFIRE_REPORT), (
+            f"Surefire report not found at {SUREFIRE_REPORT}. "
             f"Maven stdout (last 2000 chars): {maven_test_result.stdout[-2000:]}"
         )
 
+    def _read_surefire_report(self):
+        if not os.path.isfile(SUREFIRE_REPORT):
+            pytest.skip("Surefire report not found")
+        with open(SUREFIRE_REPORT, "r") as f:
+            return f.read()
+
     def test_all_eleven_tests_ran(self, maven_test_result):
         """All 11 PowerPointFilterTest tests must run."""
-        report_path = os.path.join(
-            DSPACE_DIR,
-            "dspace-api/target/surefire-reports/org.dspace.app.mediafilter.PowerPointFilterTest.txt"
-        )
-        if not os.path.isfile(report_path):
-            pytest.skip("Surefire report not found")
-
-        with open(report_path, "r") as f:
-            content = f.read()
-
-        # Parse: "Tests run: 11, Failures: 0, Errors: 0, Skipped: 0"
-        import re
+        content = self._read_surefire_report()
         match = re.search(r"Tests run:\s*(\d+)", content)
         assert match, f"Could not parse 'Tests run' from surefire report: {content}"
         tests_run = int(match.group(1))
@@ -333,17 +313,7 @@ class TestMavenUnitTests:
 
     def test_zero_failures(self, maven_test_result):
         """PowerPointFilterTest must have 0 failures."""
-        report_path = os.path.join(
-            DSPACE_DIR,
-            "dspace-api/target/surefire-reports/org.dspace.app.mediafilter.PowerPointFilterTest.txt"
-        )
-        if not os.path.isfile(report_path):
-            pytest.skip("Surefire report not found")
-
-        with open(report_path, "r") as f:
-            content = f.read()
-
-        import re
+        content = self._read_surefire_report()
         match = re.search(r"Failures:\s*(\d+)", content)
         assert match, f"Could not parse 'Failures' from surefire report: {content}"
         failures = int(match.group(1))
@@ -353,17 +323,7 @@ class TestMavenUnitTests:
 
     def test_zero_errors(self, maven_test_result):
         """PowerPointFilterTest must have 0 errors."""
-        report_path = os.path.join(
-            DSPACE_DIR,
-            "dspace-api/target/surefire-reports/org.dspace.app.mediafilter.PowerPointFilterTest.txt"
-        )
-        if not os.path.isfile(report_path):
-            pytest.skip("Surefire report not found")
-
-        with open(report_path, "r") as f:
-            content = f.read()
-
-        import re
+        content = self._read_surefire_report()
         match = re.search(r"Errors:\s*(\d+)", content)
         assert match, f"Could not parse 'Errors' from surefire report: {content}"
         errors = int(match.group(1))
