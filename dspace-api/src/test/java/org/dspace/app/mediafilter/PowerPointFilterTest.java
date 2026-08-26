@@ -11,6 +11,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -111,6 +112,16 @@ public class PowerPointFilterTest extends AbstractUnitTest {
     public void testNullSourceReturnsNull() throws Exception {
         InputStream result = filter.getDestinationStream(null, null, false);
         assertNull("null source should return null", result);
+    }
+
+    /**
+     * Verify that an empty (zero-byte) source stream returns null, matching the spec
+     * requirement to handle both null and empty sources gracefully.
+     */
+    @Test
+    public void testEmptySourceReturnsNull() throws Exception {
+        InputStream result = filter.getDestinationStream(null, new ByteArrayInputStream(new byte[0]), false);
+        assertNull("empty source should return null", result);
     }
 
     /**
