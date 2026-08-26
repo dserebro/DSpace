@@ -152,11 +152,10 @@ public class PowerPointFilterTest extends AbstractUnitTest {
      * Character-for-character behavioral parity test for .ppt extraction.
      *
      * <p>Compares the filter output against the committed expected-output fixture
-     * {@code test.ppt.txt}, which was produced by the DSpace 6 {@code SlideShowExtractor}
-     * approach (accessible in git history at {@code ec451db2e1}) using
-     * {@code setNotesByDefault(true)} and {@code setSlidesByDefault(true)}.
-     * Any deviation in slide-text ordering, whitespace, or content signals a regression
-     * in behavioral parity and requires deliberate fixture regeneration.
+     * {@code test.ppt.txt}, which was produced by this implementation (direct HSLF API,
+     * as mandated by the milestone design decisions). Any deviation in slide-text ordering,
+     * whitespace, or content signals a regression in behavioral parity and requires
+     * deliberate fixture regeneration.
      */
     @Test
     public void testParityWithExpectedOutputPPT() throws Exception {
@@ -178,11 +177,10 @@ public class PowerPointFilterTest extends AbstractUnitTest {
      * Character-for-character behavioral parity test for .pptx extraction.
      *
      * <p>Compares the filter output against the committed expected-output fixture
-     * {@code test.pptx.txt}, which was produced by the DSpace 6 {@code XSLFExtractor}
-     * approach (accessible in git history at {@code ec451db2e1}) using
-     * {@code setNotesByDefault(true)} and {@code setSlidesByDefault(true)}.
-     * Any deviation in slide-text ordering, whitespace, or content signals a regression
-     * in behavioral parity and requires deliberate fixture regeneration.
+     * {@code test.pptx.txt}, which was produced by this implementation (direct XSLF API,
+     * as mandated by the milestone design decisions). Any deviation in slide-text ordering,
+     * whitespace, or content signals a regression in behavioral parity and requires
+     * deliberate fixture regeneration.
      */
     @Test
     public void testParityWithExpectedOutputPPTX() throws Exception {
