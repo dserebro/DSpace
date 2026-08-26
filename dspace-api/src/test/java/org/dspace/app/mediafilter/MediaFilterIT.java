@@ -249,27 +249,7 @@ public class MediaFilterIT extends AbstractIntegrationTestWithDatabase {
      */
     @Test
     public void mediaFilterPowerPointFilterPptxTest() throws Exception {
-        context.turnOffAuthorisationSystem();
-        Item pptxItem = ItemBuilder.createItem(context, col1_1)
-                .withTitle("PowerPoint PPTX Item")
-                .withIssueDate("2024-01-01")
-                .build();
-        BitstreamBuilder.createBitstream(context, pptxItem, getClass().getResourceAsStream("test.pptx"))
-                .withName("test.pptx")
-                .guessFormat()
-                .build();
-        context.restoreAuthSystemState();
-
-        runDSpaceScript("filter-media", "-i", pptxItem.getHandle());
-        pptxItem = context.reloadEntity(pptxItem);
-
-        List<Bundle> textBundles = pptxItem.getBundles("TEXT");
-        assertTrue("PPTX item should have exactly one TEXT bundle", textBundles.size() == 1);
-        List<Bitstream> bitstreams = textBundles.get(0).getBitstreams();
-        assertTrue("TEXT bundle should have exactly one bitstream (PowerPointFilter only, not Tika+PowerPoint)",
-                bitstreams.size() == 1);
-        String content = getContent(bitstreams.get(0)).toString();
-        assertTrue("Extracted PPTX text should contain 'quick brown fox'", content.contains("quick brown fox"));
+        runPowerPointFilterTest("test.pptx");
     }
 
     /**
@@ -278,26 +258,31 @@ public class MediaFilterIT extends AbstractIntegrationTestWithDatabase {
      */
     @Test
     public void mediaFilterPowerPointFilterPptTest() throws Exception {
+        runPowerPointFilterTest("test.ppt");
+    }
+
+    private void runPowerPointFilterTest(String filename) throws Exception {
         context.turnOffAuthorisationSystem();
-        Item pptItem = ItemBuilder.createItem(context, col1_1)
-                .withTitle("PowerPoint PPT Item")
+        Item item = ItemBuilder.createItem(context, col1_1)
+                .withTitle("PowerPoint " + filename + " Item")
                 .withIssueDate("2024-01-01")
                 .build();
-        BitstreamBuilder.createBitstream(context, pptItem, getClass().getResourceAsStream("test.ppt"))
-                .withName("test.ppt")
+        BitstreamBuilder.createBitstream(context, item, getClass().getResourceAsStream(filename))
+                .withName(filename)
                 .guessFormat()
                 .build();
         context.restoreAuthSystemState();
 
-        runDSpaceScript("filter-media", "-i", pptItem.getHandle());
-        pptItem = context.reloadEntity(pptItem);
+        runDSpaceScript("filter-media", "-i", item.getHandle());
+        item = context.reloadEntity(item);
 
-        List<Bundle> textBundles = pptItem.getBundles("TEXT");
-        assertTrue("PPT item should have exactly one TEXT bundle", textBundles.size() == 1);
+        List<Bundle> textBundles = item.getBundles("TEXT");
+        assertTrue(filename + " item should have exactly one TEXT bundle", textBundles.size() == 1);
         List<Bitstream> bitstreams = textBundles.get(0).getBitstreams();
         assertTrue("TEXT bundle should have exactly one bitstream (PowerPointFilter only, not Tika+PowerPoint)",
                 bitstreams.size() == 1);
         String content = getContent(bitstreams.get(0)).toString();
-        assertTrue("Extracted PPT text should contain 'quick brown fox'", content.contains("quick brown fox"));
+        assertTrue("Extracted " + filename + " text should contain 'quick brown fox'",
+                content.contains("quick brown fox"));
     }
 }
