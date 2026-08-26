@@ -70,12 +70,7 @@ public class PowerPointFilterTest extends AbstractUnitTest {
      */
     @Test
     public void testGetDestinationStreamWithPPT() throws Exception {
-        InputStream source = getClass().getResourceAsStream("test.ppt");
-        assertNotNull("test.ppt fixture must exist", source);
-        InputStream result = filter.getDestinationStream(null, source, false);
-        assertNotNull("PPT extraction should return a non-null stream", result);
-        String text = readAll(result);
-        assertTrue("Known content 'quick brown fox' not found in .ppt output", text.contains("quick brown fox"));
+        assertExtractionContainsKnownContent("ppt");
     }
 
     /**
@@ -84,12 +79,17 @@ public class PowerPointFilterTest extends AbstractUnitTest {
      */
     @Test
     public void testGetDestinationStreamWithPPTX() throws Exception {
-        InputStream source = getClass().getResourceAsStream("test.pptx");
-        assertNotNull("test.pptx fixture must exist", source);
+        assertExtractionContainsKnownContent("pptx");
+    }
+
+    private void assertExtractionContainsKnownContent(String ext) throws Exception {
+        InputStream source = getClass().getResourceAsStream("test." + ext);
+        assertNotNull("test." + ext + " fixture must exist", source);
         InputStream result = filter.getDestinationStream(null, source, false);
-        assertNotNull("PPTX extraction should return a non-null stream", result);
+        assertNotNull(ext.toUpperCase() + " extraction should return a non-null stream", result);
         String text = readAll(result);
-        assertTrue("Known content 'quick brown fox' not found in .pptx output", text.contains("quick brown fox"));
+        assertTrue("Known content 'quick brown fox' not found in ." + ext + " output",
+                text.contains("quick brown fox"));
     }
 
     /**
@@ -126,6 +126,17 @@ public class PowerPointFilterTest extends AbstractUnitTest {
     }
 
     /**
+     * Verify that corrupt (non-PowerPoint) bytes cause an exception to be thrown,
+     * covering the catch block in getDestinationStream() that logs and re-throws.
+     * A regression that swallows the exception would fail this test.
+     */
+    @Test(expected = Exception.class)
+    public void testCorruptBytesThrowsException() throws Exception {
+        byte[] corrupt = "THIS IS NOT A VALID POWERPOINT FILE".getBytes(StandardCharsets.UTF_8);
+        filter.getDestinationStream(null, new ByteArrayInputStream(corrupt), false);
+    }
+
+    /**
      * Verify that SelfRegisterInputFormats returns the expected PPT and PPTX MIME types.
      */
     @Test
@@ -137,6 +148,18 @@ public class PowerPointFilterTest extends AbstractUnitTest {
         assertTrue("Should include application/vnd.openxmlformats-officedocument.presentationml.presentation",
                 containsValue(mimeTypes,
                         "application/vnd.openxmlformats-officedocument.presentationml.presentation"));
+    }
+
+    /**
+     * Verify that SelfRegisterInputFormats returns the expected PPT and PPTX file extensions.
+     * MILESTONE.md Design Decision 2 mandates {@code "ppt"} and {@code "pptx"}.
+     */
+    @Test
+    public void testGetInputExtensions() {
+        String[] extensions = filter.getInputExtensions();
+        assertNotNull(extensions);
+        assertTrue("Should include 'ppt' extension", containsValue(extensions, "ppt"));
+        assertTrue("Should include 'pptx' extension", containsValue(extensions, "pptx"));
     }
 
     private static boolean containsValue(String[] array, String value) {
@@ -159,18 +182,7 @@ public class PowerPointFilterTest extends AbstractUnitTest {
      */
     @Test
     public void testParityWithExpectedOutputPPT() throws Exception {
-        InputStream source = getClass().getResourceAsStream("test.ppt");
-        assertNotNull("test.ppt fixture must exist", source);
-        InputStream result = filter.getDestinationStream(null, source, false);
-        assertNotNull("PPT extraction must return a non-null stream", result);
-        String actual = readAll(result);
-
-        InputStream expected = getClass().getResourceAsStream("test.ppt.txt");
-        assertNotNull("test.ppt.txt expected-output fixture must exist", expected);
-        String expectedText = readAll(expected);
-
-        assertEquals("PPT extraction output must match expected fixture character-for-character",
-                expectedText, actual);
+        assertParityWithExpectedOutput("ppt");
     }
 
     /**
@@ -184,17 +196,21 @@ public class PowerPointFilterTest extends AbstractUnitTest {
      */
     @Test
     public void testParityWithExpectedOutputPPTX() throws Exception {
-        InputStream source = getClass().getResourceAsStream("test.pptx");
-        assertNotNull("test.pptx fixture must exist", source);
+        assertParityWithExpectedOutput("pptx");
+    }
+
+    private void assertParityWithExpectedOutput(String ext) throws Exception {
+        InputStream source = getClass().getResourceAsStream("test." + ext);
+        assertNotNull("test." + ext + " fixture must exist", source);
         InputStream result = filter.getDestinationStream(null, source, false);
-        assertNotNull("PPTX extraction must return a non-null stream", result);
+        assertNotNull(ext.toUpperCase() + " extraction must return a non-null stream", result);
         String actual = readAll(result);
 
-        InputStream expected = getClass().getResourceAsStream("test.pptx.txt");
-        assertNotNull("test.pptx.txt expected-output fixture must exist", expected);
+        InputStream expected = getClass().getResourceAsStream("test." + ext + ".txt");
+        assertNotNull("test." + ext + ".txt expected-output fixture must exist", expected);
         String expectedText = readAll(expected);
 
-        assertEquals("PPTX extraction output must match expected fixture character-for-character",
+        assertEquals(ext.toUpperCase() + " extraction output must match expected fixture character-for-character",
                 expectedText, actual);
     }
 
