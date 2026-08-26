@@ -50,3 +50,14 @@ rebel.xml
 
 ## Ignore jenv configuration
 .java-version
+
+## Ignore Python testing artifacts (functional tests use pytest)
+.venv/
+venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+*.pyo
+
+## Ignore compiled Java artifacts in functional-test directory
+.mcode/**/*.class

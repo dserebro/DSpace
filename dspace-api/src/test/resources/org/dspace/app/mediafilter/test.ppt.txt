@@ -1,0 +1,8 @@
+DSpace Text Extraction
+A test presentation
+My first point
+The quick brown fox jumped over the lazy dog
+A quick aside
+Lorem ipsum dolor sit amet
+In closing
+DSpace can extract the text from your presentations!Give it a try yourself

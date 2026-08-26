@@ -239,4 +239,50 @@ public class MediaFilterIT extends AbstractIntegrationTestWithDatabase {
         item2_1_b = context.reloadEntity(item2_1_b);
 
     }
+
+    /**
+     * Verify that PowerPointFilter produces exactly one TEXT bundle bitstream for a .pptx
+     * item and that the extracted text contains the expected slide content.
+     *
+     * <p>Having exactly one TEXT bitstream (not two) also implicitly validates that
+     * TikaTextExtractionFilter does not run on PPT/PPTX after its input formats were removed.
+     */
+    @Test
+    public void mediaFilterPowerPointFilterPptxTest() throws Exception {
+        runPowerPointFilterTest("test.pptx");
+    }
+
+    /**
+     * Verify that PowerPointFilter produces exactly one TEXT bundle bitstream for a binary
+     * .ppt item and that the extracted text contains the expected slide content.
+     */
+    @Test
+    public void mediaFilterPowerPointFilterPptTest() throws Exception {
+        runPowerPointFilterTest("test.ppt");
+    }
+
+    private void runPowerPointFilterTest(String filename) throws Exception {
+        context.turnOffAuthorisationSystem();
+        Item item = ItemBuilder.createItem(context, col1_1)
+                .withTitle("PowerPoint " + filename + " Item")
+                .withIssueDate("2024-01-01")
+                .build();
+        BitstreamBuilder.createBitstream(context, item, getClass().getResourceAsStream(filename))
+                .withName(filename)
+                .guessFormat()
+                .build();
+        context.restoreAuthSystemState();
+
+        runDSpaceScript("filter-media", "-i", item.getHandle());
+        item = context.reloadEntity(item);
+
+        List<Bundle> textBundles = item.getBundles("TEXT");
+        assertTrue(filename + " item should have exactly one TEXT bundle", textBundles.size() == 1);
+        List<Bitstream> bitstreams = textBundles.get(0).getBitstreams();
+        assertTrue("TEXT bundle should have exactly one bitstream (PowerPointFilter only, not Tika+PowerPoint)",
+                bitstreams.size() == 1);
+        String content = getContent(bitstreams.get(0)).toString();
+        assertTrue("Extracted " + filename + " text should contain 'quick brown fox'",
+                content.contains("quick brown fox"));
+    }
 }
