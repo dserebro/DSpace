@@ -58,3 +58,6 @@ __pycache__/
 .pytest_cache/
 *.pyc
 *.pyo
+
+## Ignore compiled Java artifacts in functional-test directory
+.mcode/**/*.class
