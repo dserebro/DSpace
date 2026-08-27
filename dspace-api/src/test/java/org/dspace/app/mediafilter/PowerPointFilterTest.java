@@ -18,7 +18,6 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
 import org.apache.commons.io.IOUtils;
-import org.dspace.AbstractUnitTest;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -30,13 +29,12 @@ import org.junit.Test;
  * {@code dspace-api/src/test/resources/org/dspace/app/mediafilter/} and are
  * the same files used by {@link TikaTextExtractionFilterTest}.
  */
-public class PowerPointFilterTest extends AbstractUnitTest {
+public class PowerPointFilterTest {
 
     private PowerPointFilter filter;
 
     @Before
-    public void setUp() throws Exception {
-        super.init();
+    public void setUp() {
         filter = new PowerPointFilter();
     }
 
