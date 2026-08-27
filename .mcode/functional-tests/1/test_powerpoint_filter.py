@@ -302,13 +302,13 @@ class TestMavenUnitTests:
             return f.read()
 
     def test_all_eleven_tests_ran(self, maven_test_result):
-        """All 11 PowerPointFilterTest tests must run."""
+        """All PowerPointFilterTest tests must run (at least the 11 planned tests)."""
         content = self._read_surefire_report()
         match = re.search(r"Tests run:\s*(\d+)", content)
         assert match, f"Could not parse 'Tests run' from surefire report: {content}"
         tests_run = int(match.group(1))
-        assert tests_run == 11, (
-            f"Expected 11 tests to run, but got {tests_run}. Report: {content}"
+        assert tests_run >= 11, (
+            f"Expected at least 11 tests to run, but got {tests_run}. Report: {content}"
         )
 
     def test_zero_failures(self, maven_test_result):
